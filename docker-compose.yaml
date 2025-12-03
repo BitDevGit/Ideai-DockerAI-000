@@ -1,0 +1,147 @@
+# AI Pen Knife - Port Range: 18000-18007
+# See PORTS.md for port allocation strategy
+
+services:
+  # Next.js Frontend Dashboard
+  web-ui:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:18001
+        - NEXT_PUBLIC_RUST_COMPUTE_URL=http://localhost:18002
+    ports:
+      - "18000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - python-rag
+      - rust-wasm-compute
+    networks:
+      - ai-penknife-network
+    labels:
+      - "com.ai-penknife.service=web-ui"
+      - "com.ai-penknife.port=18000"
+
+  # Python RAG Backend
+  python-rag:
+    build:
+      context: ./backend/python-rag
+      dockerfile: Dockerfile
+    ports:
+      - "18001:8000"
+    environment:
+      - QDRANT_URL=http://qdrant-db:6333
+      - OLLAMA_URL=http://ollama-llm:11434
+      - RUST_COMPUTE_URL=http://rust-wasm-compute:8080
+      # Local models: Format "name:url,name2:url2" or just URLs
+      # Example: "my-model:http://my-model-service:8000" or "http://my-model-service:8000"
+      - LOCAL_MODELS=${LOCAL_MODELS:-}
+    depends_on:
+      - qdrant-db
+      - ollama-llm
+      - rust-wasm-compute
+    networks:
+      - ai-penknife-network
+    labels:
+      - "com.ai-penknife.service=python-rag"
+      - "com.ai-penknife.port=18001"
+
+  # Rust/Wasm Compute Service
+  rust-wasm-compute:
+    build:
+      context: ./backend/rust-wasm-compute
+      dockerfile: Dockerfile
+    ports:
+      - "18002:8080"
+    networks:
+      - ai-penknife-network
+    labels:
+      - "com.ai-penknife.service=rust-wasm-compute"
+      - "com.ai-penknife.port=18002"
+
+  # Qdrant Vector Database
+  qdrant-db:
+    image: qdrant/qdrant:latest
+    ports:
+      - "18003:6333"
+      - "18004:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - ai-penknife-network
+    labels:
+      - "com.ai-penknife.service=qdrant-db"
+      - "com.ai-penknife.port=18003"
+
+  # Ollama LLM Runtime
+  ollama-llm:
+    image: ollama/ollama:latest
+    ports:
+      - "18005:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - ai-penknife-network
+    labels:
+      - "com.ai-penknife.service=ollama-llm"
+      - "com.ai-penknife.port=18005"
+    # Initialize with models on startup (non-blocking)
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve &
+        sleep 10
+        ollama pull llama3.1:8b || true &
+        ollama pull mistral:7b || true &
+        wait
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "18006:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - ai-penknife-network
+    labels:
+      - "com.ai-penknife.service=prometheus"
+      - "com.ai-penknife.port=18006"
+
+  # Grafana Visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "18007:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=http://localhost:18007
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - ai-penknife-network
+    labels:
+      - "com.ai-penknife.service=grafana"
+      - "com.ai-penknife.port=18007"
+
+volumes:
+  qdrant_storage:
+  ollama_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  ai-penknife-network:
+    driver: bridge
+
