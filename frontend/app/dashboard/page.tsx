@@ -38,11 +38,11 @@ const SERVICE_INFO: Record<string, ServiceInfo> = {
     description: "High-performance vector database for storing and retrieving document embeddings. Enables semantic search and RAG (Retrieval Augmented Generation) capabilities.",
     color: "bg-purple-500"
   },
-  "ollama-llm": {
-    name: "LLM Runtime",
+  "docker-model-runner": {
+    name: "Docker Model Runner",
     icon: <Brain className="h-6 w-6" />,
-    tech: "Ollama",
-    description: "Local LLM runtime supporting multiple models (Llama, Mistral, etc.). Runs models entirely on-premises with no external API dependencies for sovereign AI operations.",
+    tech: "Docker Desktop",
+    description: "Docker&apos;s built-in model runner managing 6 LLM models (deepseek-r1-distill-llama, gpt-oss, llama3.1, mistral, qwen3-coder, qwen3-vl). Runs as Docker Desktop service, not a container.",
     color: "bg-indigo-500"
   },
   "prometheus": {
@@ -63,10 +63,11 @@ const SERVICE_INFO: Record<string, ServiceInfo> = {
 
 interface Service {
   name: string
-  port: number
-  url: string
+  port: number | null
+  url: string | null
   status: string
   error?: string
+  note?: string
 }
 
 interface ServiceInfo {
@@ -295,19 +296,25 @@ export default function Dashboard() {
                           </p>
                           <div className="flex items-center justify-between pt-2 border-t">
                             <span className="text-xs text-muted-foreground">
-                              Port {service.port}
+                              {service.port ? `Port ${service.port}` : "Docker Desktop service"}
                             </span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                window.open(service.url, "_blank")
-                              }}
-                            >
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              Open
-                            </Button>
+                            {service.url ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  window.open(service.url!, "_blank")
+                                }}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Open
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                Docker Desktop service
+                              </span>
+                            )}
                           </div>
                           {service.error && (
                             <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
@@ -362,15 +369,24 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
               {services.map((service) => (
-                <Button
-                  key={service.name}
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => window.open(service.url, "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  {service.name} ({service.port})
-                </Button>
+                service.url ? (
+                  <Button
+                    key={service.name}
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => window.open(service.url!, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {service.name} {service.port ? `(${service.port})` : ""}
+                  </Button>
+                ) : (
+                  <div
+                    key={service.name}
+                    className="px-4 py-2 border rounded-md text-sm text-muted-foreground bg-muted"
+                  >
+                    {service.name} {service.note ? `- ${service.note}` : ""}
+                  </div>
+                )
               ))}
             </div>
           </CardContent>

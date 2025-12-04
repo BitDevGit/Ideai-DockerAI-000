@@ -1,0 +1,8 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+deepeval>=0.18.0
+requests==2.31.0
+pydantic==2.5.2
+# Note: deepeval will be installed with timeout handling in Dockerfile
+# to avoid hanging on llama-index dependencies
+

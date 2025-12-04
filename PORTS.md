@@ -15,9 +15,11 @@ We use ports in the **18000-18999** range to minimize conflicts with common serv
 | Rust Compute API | 18002 | 8080 | http://localhost:18002 |
 | Qdrant HTTP | 18003 | 6333 | http://localhost:18003 |
 | Qdrant gRPC | 18004 | 6334 | http://localhost:18004 |
-| Ollama | 18005 | 11434 | http://localhost:18005 |
+| Docker Model Runner | N/A | N/A | Docker Desktop service |
 | Prometheus | 18006 | 9090 | http://localhost:18006 |
 | Grafana | 18007 | 3000 | http://localhost:18007 |
+| DeepEval Service | 18008 | 8000 | http://localhost:18008 |
+| Phoenix (Optional) | 18009 | 6006 | http://localhost:18009 |
 
 ## Best Practices for Multi-Project Docker
 

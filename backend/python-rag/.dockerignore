@@ -10,5 +10,11 @@ __pycache__
 .coverage
 .env
 .env.local
+# frontend/  # Commented out - needed for build
+# services/  # Commented out - needed for build
+# testing/   # Commented out - needed for build
+# *.md       # Commented out - needed for build
+.git
+.gitignore
 
 
